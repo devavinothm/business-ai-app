@@ -1,70 +1,147 @@
-import { Image, StyleSheet, Platform } from 'react-native';
-
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import React, { useState } from 'react';
+import { Text, View, StyleSheet, Image, TextInput, TouchableOpacity, ScrollView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import axios from 'axios';
 
 export default function HomeScreen() {
+  const [message, setMessage] = useState('');
+  const [response, setResponse] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSendMessage = async () => {
+    if (message.trim() === '') return;
+
+    setLoading(true); // Start loading
+    const userMessage = message;
+
+    const promptedMessage = `You are a business mentor and you are helping a new entrepreneur. The entrepreneur is asking you for advice on how to grow their business. What advice would you give them? \n\nUser: ${userMessage}`;
+    setMessage('');
+
+    try {
+      const apiKey = "YOUR_API_KEY";
+      const { data } = await axios.post(
+        'https://api.openai.com/v1/completions',
+        {
+          model: 'gpt-3.5-turbo-instruct', // Make sure the model name is correct
+          prompt: promptedMessage,
+          max_tokens: 150,
+          n: 1,
+          stop: null,
+          temperature: 0.7,
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+          },
+        }
+      );
+
+      const aiMessage = data.choices[0].text.trim();
+      setResponse(aiMessage);
+    } catch (error) {
+      console.error('Error:', error); // Log the error
+      setResponse('Failed to fetch response from AI.');
+    } finally {
+      setLoading(false); // Ensure loading is set to false in both success and error cases
+    }
+  };
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Business GPT</Text>
+        <Text style={styles.subTitle}>Your AI-powered business mentor</Text>
+      </View>
+
+      <Image
+        source={{ uri: 'https://reactnative.dev/img/tiny_logo.png' }}
+        style={styles.reactLogo}
+      />
+
+      <ScrollView style={styles.responseContainer}>
+        <Text style={styles.responseText}>{loading ? 'Loading...' : response}</Text>
+      </ScrollView>
+
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.textInput}
+          placeholder="Type your message..."
+          value={message}
+          onChangeText={text => setMessage(text)}
         />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({ ios: 'cmd + d', android: 'cmd + m' })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+        <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage} disabled={loading}>
+          <Ionicons name="send" size={24} color="white" />
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
+    justifyContent: 'space-between',
+    padding: 20,
+    backgroundColor: '#f7f7f7',
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  header: {
+    marginTop: 50,
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  subTitle: {
+    fontSize: 16,
+    color: '#666',
+    marginTop: 8,
   },
   reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+    height: 100,
+    width: 100,
+    alignSelf: 'center',
+    marginVertical: 20,
+  },
+  responseContainer: {
+    flex: 1,
+    marginVertical: 20,
+    padding: 10,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  responseText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 30,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 5,
+    marginBottom: 30,
+  },
+  textInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#333',
+  },
+  sendButton: {
+    backgroundColor: '#007BFF',
+    borderRadius: 25,
+    padding: 10,
+    marginLeft: 10,
   },
 });
